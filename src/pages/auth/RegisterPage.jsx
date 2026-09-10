@@ -201,7 +201,7 @@ export default function RegisterPage() {
         member_id: memberId,
         full_name: formData.full_name,
         email: formData.email,
-        mobile: formData.mobile,
+        mobile: (formData.mobile || '').replace(/\D/g, '').slice(-10),
         role: 'MEMBER',
         network_role: 'MEMBER',
         rank_code: 'MEMBER',
@@ -582,22 +582,31 @@ export default function RegisterPage() {
                 {/* Mobile Number */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Mobile Number (WhatsApp Enabled) <span className="text-rose-500">*</span>
+                    Mobile Number (WhatsApp) <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative flex items-center">
-                    <div className="absolute left-3.5 flex items-center gap-1 text-slate-500 text-xs font-bold border-r border-slate-300 pr-2">
-                      <Phone size={14} className="text-slate-400" />
+                    <Phone size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
+                    <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-600 select-none z-10 border-r border-slate-300 pr-2">
                       +91
-                    </div>
+                    </span>
                     <input
                       type="tel"
+                      maxLength={10}
                       placeholder="9876543210"
                       className={cn(
                         inputClass,
-                        'pl-20',
+                        'pl-[72px] font-medium',
                         step1Form.formState.errors.mobile && errorClass
                       )}
-                      {...step1Form.register('mobile')}
+                      {...step1Form.register('mobile', {
+                        onChange: (e) => {
+                          let val = e.target.value.replace(/\D/g, '')
+                          if (val.startsWith('91') && val.length > 10) val = val.slice(2)
+                          if (val.startsWith('0') && val.length > 10) val = val.slice(1)
+                          if (val.length > 10) val = val.slice(0, 10)
+                          step1Form.setValue('mobile', val)
+                        }
+                      })}
                     />
                   </div>
                   {step1Form.formState.errors.mobile && (
@@ -605,6 +614,9 @@ export default function RegisterPage() {
                       {step1Form.formState.errors.mobile.message}
                     </p>
                   )}
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Enter your 10-digit mobile number — country code +91 is pre-filled.
+                  </p>
                 </div>
 
                 {/* Password with Strength Meter */}

@@ -6,9 +6,10 @@ import { z } from 'zod'
 
 const mobileSchema = z
   .string()
-  .min(10, 'Mobile number must be at least 10 digits')
-  .max(15, 'Mobile number must be at most 15 digits')
-  .regex(/^[+]?[0-9]{10,15}$/, 'Invalid mobile number format')
+  .transform(val => (val || '').replace(/\D/g, '').slice(-10))
+  .refine(val => val.length === 10, {
+    message: 'Please enter a valid 10-digit mobile number (e.g. 9876543210)',
+  })
 
 const passwordSchema = z
   .string()

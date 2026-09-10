@@ -51,7 +51,14 @@ export default function LoginPage() {
   })
 
   const onSubmit = async (data) => {
-    const identifier = data.identifier || data.email
+    let identifier = (data.identifier || data.email || '').trim()
+    const digitsOnly = identifier.replace(/\D/g, '')
+    if (digitsOnly.length === 10) {
+      identifier = digitsOnly
+    } else if (digitsOnly.length > 10 && (digitsOnly.startsWith('91') || digitsOnly.startsWith('0'))) {
+      identifier = digitsOnly.slice(-10)
+    }
+
     const result = await signIn(identifier, data.password)
     if (result.success) {
       toast.success('Welcome back to Jample Life!')
