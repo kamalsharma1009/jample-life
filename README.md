@@ -163,9 +163,9 @@ vercel --prod
 
 Jample Life supports enterprise Direct Selling (MLM) login standards:
 
-1. **Distributor Login via Generated ID**:
+1. **Distributor Login via Distributor ID or Mobile No.**:
    - Every distributor is assigned an official **Distributor ID** upon registration (e.g. `JL-2026-0201`).
-   - Members sign in at `/login` using their **Generated Distributor ID** (or registered email) and password.
+   - Members sign in at `/login` using their **Distributor ID** (e.g. `JL-2026-0201`) or **Registered Mobile No.** (e.g. `9876543210`) and password.
 2. **Super Administrators**:
    - Administrative backoffice accounts (`/admin`) are accessed via their Admin ID (e.g. `JL-ADMIN-001`) or admin email.
    - Access is guarded by `<AdminRoute>` middleware, preventing unauthorized access to settlement engines, master genealogy, and compliance verification queues.

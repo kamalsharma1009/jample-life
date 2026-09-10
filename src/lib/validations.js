@@ -32,7 +32,7 @@ const referralCodeSchema = z
 export const loginSchema = z.object({
   identifier: z
     .string()
-    .min(2, 'Please enter your Distributor ID or Email')
+    .min(2, 'Please enter your Distributor ID or Mobile No.')
     .trim(),
   password: z.string().min(1, 'Password is required'),
 })

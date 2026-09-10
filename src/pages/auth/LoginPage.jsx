@@ -214,17 +214,17 @@ export default function LoginPage() {
 
             {/* Login Form */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              {/* Distributor ID or Email */}
+              {/* Distributor ID or Mobile No. */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Distributor ID or Email <span className="text-rose-500">*</span>
+                  Distributor ID or Mobile No. <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <User size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
                     autoComplete="username"
-                    placeholder="e.g. JL-2026-0201 or your@email.com"
+                    placeholder="e.g. JL-2026-0201 or 9876543210"
                     {...register('identifier')}
                     className={cn(
                       inputClass,
@@ -239,7 +239,7 @@ export default function LoginPage() {
                   </p>
                 )}
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Enter your generated Distributor ID (e.g. JL-2026-0201) or registered email.
+                  Enter your assigned Distributor ID (e.g. JL-2026-0201) or registered Mobile Number.
                 </p>
               </div>
 

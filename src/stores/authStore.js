@@ -117,14 +117,19 @@ export const useAuthStore = create(
             return get().signInDemo(isAdmin ? 'ADMIN' : 'MEMBER', rawInput)
           }
 
-          // 1. Resolve member profile from database by Member ID or Email
+          // 1. Resolve member profile from database by Member ID, Mobile No., or Email
           let matchedProfile = null
           try {
-            const { data } = await supabase
-              .from('profiles')
-              .select('*')
-              .or(`member_id.ilike.${rawInput},email.ilike.${rawInput},referral_code.ilike.${rawInput}`)
-              .maybeSingle()
+            const digits = rawInput.replace(/\D/g, '')
+            const last10 = digits.length >= 10 ? digits.slice(-10) : digits
+
+            let query = supabase.from('profiles').select('*')
+            if (last10 && last10.length === 10) {
+              query = query.or(`member_id.ilike.${rawInput},mobile.ilike.%${last10}%,email.ilike.${rawInput},referral_code.ilike.${rawInput}`)
+            } else {
+              query = query.or(`member_id.ilike.${rawInput},mobile.ilike.${rawInput},email.ilike.${rawInput},referral_code.ilike.${rawInput}`)
+            }
+            const { data } = await query.maybeSingle()
             matchedProfile = data
           } catch (profileErr) {
             console.warn('[AuthStore] Profile lookup note:', profileErr)
@@ -168,12 +173,12 @@ export const useAuthStore = create(
             return get().signInDemo(isDemoAdmin ? 'ADMIN' : 'MEMBER', rawInput)
           }
 
-          throw new Error('Invalid Distributor ID or Password. Please verify your credentials.')
+          throw new Error('Invalid Distributor ID, Mobile No., or Password. Please verify your credentials.')
         } catch (error) {
           if (password === 'Password123' || password === 'Admin@123456' || password === 'Member@123456' || isDemoAdmin || isDemoMember) {
             return get().signInDemo(isDemoAdmin ? 'ADMIN' : 'MEMBER', rawInput)
           }
-          const message = getAuthErrorMessage(error) || 'Invalid Distributor ID or Password.'
+          const message = getAuthErrorMessage(error) || 'Invalid Distributor ID, Mobile No., or Password.'
           set({ isLoading: false, error: message })
           return { success: false, error: message }
         }
@@ -190,7 +195,13 @@ export const useAuthStore = create(
           let query = supabase.from('profiles').select('*')
 
           if (targetIdentifier && targetIdentifier !== 'member@jamplelife.com' && targetIdentifier !== 'member@jample.com' && targetIdentifier !== 'member') {
-            query = query.or(`member_id.ilike.${targetIdentifier},email.ilike.${targetIdentifier}`)
+            const digits = targetIdentifier.replace(/\D/g, '')
+            const last10 = digits.length >= 10 ? digits.slice(-10) : digits
+            if (last10 && last10.length === 10) {
+              query = query.or(`member_id.ilike.${targetIdentifier},mobile.ilike.%${last10}%,email.ilike.${targetIdentifier}`)
+            } else {
+              query = query.or(`member_id.ilike.${targetIdentifier},mobile.ilike.${targetIdentifier},email.ilike.${targetIdentifier}`)
+            }
           } else if (isAdmin) {
             query = query.eq('role', 'ADMIN').limit(1)
           } else {
