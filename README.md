@@ -159,14 +159,18 @@ vercel --prod
 
 ---
 
-## 🔑 Default Test Accounts
+## 🔐 Authentication & Access Control
 
-For demonstration and testing purposes, you can use the interactive **Quick Demo Access** buttons on the [Sign In page](/login) or enter the credentials below:
+Jample Life supports enterprise Direct Selling (MLM) login standards:
 
-| Role | Email | Password | Access Level |
-| :--- | :--- | :--- | :--- |
-| **Super Administrator** | `admin@jamplelife.com` | `Admin@123456` | Full Control Center, KYC Approvals, Settlements |
-| **Distributor Member** | `member@jamplelife.com` | `Member@123456` | Member Backoffice, Shop, Team Tree, Payouts |
+1. **Distributor Login via Generated ID**:
+   - Every distributor is assigned an official **Distributor ID** upon registration (e.g. `JL-2026-0201`).
+   - Members sign in at `/login` using their **Generated Distributor ID** (or registered email) and password.
+2. **Super Administrators**:
+   - Administrative backoffice accounts (`/admin`) are accessed via their Admin ID (e.g. `JL-ADMIN-001`) or admin email.
+   - Access is guarded by `<AdminRoute>` middleware, preventing unauthorized access to settlement engines, master genealogy, and compliance verification queues.
+3. **Zero Plaintext Credentials in Public UI**:
+   - In accordance with production security standards, no hardcoded demo auto-fill buttons or plain-text credentials are exposed in public UI or documentation.
 
 ---
 

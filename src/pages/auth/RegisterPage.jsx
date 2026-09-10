@@ -6,7 +6,7 @@ import {
   Eye, EyeOff, ArrowRight, ArrowLeft, Loader2, CheckCircle2,
   User, Shield, Sparkles, TrendingUp, Leaf, Award, Check,
   Building2, Star, ShieldCheck, Phone, Mail, Lock, Calendar,
-  MapPin, CheckSquare, Layers
+  MapPin, CheckSquare, Layers, Copy
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
@@ -54,6 +54,9 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(true)
+  const [createdCredentials, setCreatedCredentials] = useState(null)
+  const [copiedField, setCopiedField] = useState(null)
+  const [showCreatedPassword, setShowCreatedPassword] = useState(false)
 
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -298,8 +301,17 @@ export default function RegisterPage() {
         error: null
       })
 
-      toast.success('Registration successful! Welcome to your distributor dashboard.')
-      navigate('/dashboard')
+      // 6. Set created credentials state for confirmation screen
+      setCreatedCredentials({
+        memberId,
+        password: formData.password,
+        email: formData.email,
+        fullName: formData.full_name,
+        referralLink: `${window.location.origin}/register?ref=${memberId}`
+      })
+
+      toast.success('Registration successful! Distributor credentials generated.')
+      setStep(5)
     } catch (error) {
       console.error('Registration error:', error)
       const msg = error.message?.includes('already registered') || error.message?.includes('already exists')
@@ -1002,6 +1014,150 @@ export default function RegisterPage() {
                         Activate My Distributor Account
                       </>
                     )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 5: OFFICIAL CREDENTIALS GENERATED ──────────────── */}
+            {step === 5 && createdCredentials && (
+              <div className="space-y-6 animate-fade-in text-slate-800">
+                <div className="text-center space-y-2">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
+                    <CheckCircle2 size={32} />
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                    Distributor Credentials Generated!
+                  </h2>
+                  <p className="text-slate-500 text-xs sm:text-sm max-w-md mx-auto">
+                    Your Jample Life distributor account is now active. Please save your assigned <strong>Distributor ID</strong> and <strong>Password</strong> to log in.
+                  </p>
+                </div>
+
+                {/* Generated Credentials Card */}
+                <div className="rounded-2xl bg-slate-900 text-white p-6 border border-slate-800 shadow-xl relative overflow-hidden space-y-4">
+                  <div className="absolute top-0 right-0 w-36 h-36 bg-[#853953] rounded-full blur-3xl opacity-30 -mr-10 -mt-10" />
+
+                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles size={14} /> Official Login Credentials
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      ACCOUNT ACTIVE
+                    </span>
+                  </div>
+
+                  {/* Distributor ID */}
+                  <div className="p-3.5 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Generated Distributor ID (Login ID)
+                      </p>
+                      <p className="text-lg font-black font-mono text-amber-300 tracking-wider mt-0.5">
+                        {createdCredentials.memberId}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(createdCredentials.memberId)
+                        setCopiedField('id')
+                        toast.success('Distributor ID copied to clipboard!')
+                        setTimeout(() => setCopiedField(null), 2500)
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center gap-1.5"
+                    >
+                      {copiedField === 'id' ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                      {copiedField === 'id' ? 'Copied' : 'Copy ID'}
+                    </button>
+                  </div>
+
+                  {/* Password */}
+                  <div className="p-3.5 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Login Password
+                      </p>
+                      <p className="text-sm font-bold font-mono text-slate-200 tracking-wider mt-0.5">
+                        {showCreatedPassword ? createdCredentials.password : '••••••••••••'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowCreatedPassword(!showCreatedPassword)}
+                        className="p-1.5 text-slate-400 hover:text-white transition"
+                        title={showCreatedPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showCreatedPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(createdCredentials.password)
+                          setCopiedField('pw')
+                          toast.success('Password copied to clipboard!')
+                          setTimeout(() => setCopiedField(null), 2500)
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center gap-1.5"
+                      >
+                        {copiedField === 'pw' ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                        {copiedField === 'pw' ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Replicated Link */}
+                  <div className="p-3.5 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between">
+                    <div className="min-w-0 flex-1 pr-2">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Your Personal Referral Store Link
+                      </p>
+                      <p className="text-xs font-mono text-slate-300 truncate mt-0.5">
+                        {createdCredentials.referralLink}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(createdCredentials.referralLink)
+                        setCopiedField('ref')
+                        toast.success('Referral link copied to clipboard!')
+                        setTimeout(() => setCopiedField(null), 2500)
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0"
+                    >
+                      {copiedField === 'ref' ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                      {copiedField === 'ref' ? 'Copied' : 'Copy Link'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Important Notice */}
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 space-y-1">
+                  <p className="font-bold flex items-center gap-1.5">
+                    <ShieldCheck size={16} className="text-amber-600" />
+                    How to Sign In
+                  </p>
+                  <p className="text-amber-800">
+                    Use your <strong>Distributor ID ({createdCredentials.memberId})</strong> and your password on the <strong>Sign In</strong> page to access your backoffice at any time.
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <Link
+                    to="/login"
+                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-50 transition"
+                  >
+                    Go to Sign In Page
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/dashboard')}
+                    className={btnClass}
+                  >
+                    Enter Dashboard Now <ArrowRight size={16} />
                   </button>
                 </div>
               </div>

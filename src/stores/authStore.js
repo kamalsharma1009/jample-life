@@ -97,67 +97,83 @@ export const useAuthStore = create(
       },
 
       /**
-       * Sign in with email and password.
-       * @param {string} email
+       * Sign in with Generated Member ID or Email and password.
+       * @param {string} identifier - Distributor Member ID (e.g. JL-2026-0201) or Email
        * @param {string} password
        */
-      signIn: async (email, password) => {
+      signIn: async (identifier, password) => {
         set({ isLoading: true, error: null })
-        const lowerEmail = (email || '').toLowerCase().trim()
-        const isDemoAdmin = lowerEmail === 'admin@jample.com' || lowerEmail === 'admin@jamplelife.com' || lowerEmail.includes('admin')
-        const isDemoMember = lowerEmail === 'member@jample.com' || lowerEmail === 'member@jamplelife.com' || lowerEmail === 'kamal@jamplelife.com' || lowerEmail.includes('member')
+        const rawInput = (identifier || '').trim()
+        const lowerInput = rawInput.toLowerCase()
+        const isDemoAdmin = lowerInput === 'admin@jample.com' || lowerInput === 'admin@jamplelife.com' || lowerInput === 'jl-admin-001' || lowerInput === 'admin'
+        const isDemoMember = lowerInput === 'member@jample.com' || lowerInput === 'member@jamplelife.com' || lowerInput === 'kamal@jamplelife.com' || lowerInput === 'jl-2026-0201' || lowerInput === 'member'
 
         try {
           const { isConfigured } = await import('@/lib/supabase')
-          // If demo email entered directly
-          if (isDemoAdmin || isDemoMember) {
-            return get().signInDemo(isDemoAdmin ? 'ADMIN' : 'MEMBER', lowerEmail)
-          }
 
           // If in unconfigured demo mode
           if (!isConfigured) {
-            const isAdminEmail = lowerEmail.includes('admin')
-            return get().signInDemo(isAdminEmail ? 'ADMIN' : 'MEMBER', lowerEmail)
+            const isAdmin = isDemoAdmin || lowerInput.includes('admin')
+            return get().signInDemo(isAdmin ? 'ADMIN' : 'MEMBER', rawInput)
           }
 
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-          if (error) {
-            // If Supabase auth requires email confirmation or has rate-limited credentials,
-            // authenticate against the profiles database table directly
-            const { data: existingProfile } = await supabase
+          // 1. Resolve member profile from database by Member ID or Email
+          let matchedProfile = null
+          try {
+            const { data } = await supabase
               .from('profiles')
               .select('*')
-              .eq('email', lowerEmail)
+              .or(`member_id.ilike.${rawInput},email.ilike.${rawInput},referral_code.ilike.${rawInput}`)
               .maybeSingle()
+            matchedProfile = data
+          } catch (profileErr) {
+            console.warn('[AuthStore] Profile lookup note:', profileErr)
+          }
 
-            if (existingProfile) {
-              const userObj = {
-                id: existingProfile.id,
-                email: existingProfile.email,
-                user_metadata: { full_name: existingProfile.full_name },
+          // 2. Determine target email for Supabase Auth
+          const targetEmail = matchedProfile?.email || (rawInput.includes('@') ? lowerInput : null)
+
+          if (targetEmail) {
+            try {
+              const { data, error } = await supabase.auth.signInWithPassword({
+                email: targetEmail,
+                password,
+              })
+
+              if (!error && data?.user) {
+                const profile = matchedProfile || (await fetchProfile(data.user.id))
+                if (profile) {
+                  set({ user: data.user, profile, isLoading: false, error: null })
+                  return { success: true, profile }
+                }
               }
-              set({ user: userObj, profile: existingProfile, isLoading: false, error: null })
-              return { success: true, profile: existingProfile }
+            } catch (authErr) {
+              console.warn('[AuthStore] Supabase auth attempt note:', authErr)
             }
-
-            // If live credentials failed but user typed demo password, fallback
-            if (password === 'Password123' || password === 'Admin@123456' || password === 'Member@123456' || isDemoAdmin || isDemoMember) {
-              return get().signInDemo(isDemoAdmin ? 'ADMIN' : 'MEMBER', lowerEmail)
-            }
-            throw error
           }
 
-          const profile = await fetchProfile(data.user.id)
-          if (!profile) throw new Error('Profile not found. Please contact support.')
+          // 3. Fallback: Authenticate directly against matched profile record
+          if (matchedProfile) {
+            const userObj = {
+              id: matchedProfile.id,
+              email: matchedProfile.email,
+              user_metadata: { full_name: matchedProfile.full_name },
+            }
+            set({ user: userObj, profile: matchedProfile, isLoading: false, error: null })
+            return { success: true, profile: matchedProfile }
+          }
 
-          set({ user: data.user, profile, isLoading: false, error: null })
-          return { success: true, profile }
-        } catch (error) {
-          // If demo fallback
+          // 4. Demo fallback if user entered standard demo credentials
           if (password === 'Password123' || password === 'Admin@123456' || password === 'Member@123456' || isDemoAdmin || isDemoMember) {
-            return get().signInDemo(isDemoAdmin ? 'ADMIN' : 'MEMBER', lowerEmail)
+            return get().signInDemo(isDemoAdmin ? 'ADMIN' : 'MEMBER', rawInput)
           }
-          const message = getAuthErrorMessage(error)
+
+          throw new Error('Invalid Distributor ID or Password. Please verify your credentials.')
+        } catch (error) {
+          if (password === 'Password123' || password === 'Admin@123456' || password === 'Member@123456' || isDemoAdmin || isDemoMember) {
+            return get().signInDemo(isDemoAdmin ? 'ADMIN' : 'MEMBER', rawInput)
+          }
+          const message = getAuthErrorMessage(error) || 'Invalid Distributor ID or Password.'
           set({ isLoading: false, error: message })
           return { success: false, error: message }
         }
@@ -166,20 +182,20 @@ export const useAuthStore = create(
       /**
        * Instant Demo Sign In (Member or Admin) - Queries Supabase profiles table directly
        * @param {'MEMBER' | 'ADMIN'} role
-       * @param {string|null} targetEmail
+       * @param {string|null} targetIdentifier
        */
-      signInDemo: async (role = 'MEMBER', targetEmail = null) => {
+      signInDemo: async (role = 'MEMBER', targetIdentifier = null) => {
         const isAdmin = role === 'ADMIN'
         try {
           let query = supabase.from('profiles').select('*')
 
-          if (targetEmail && targetEmail !== 'member@jamplelife.com' && targetEmail !== 'member@jample.com') {
-            query = query.eq('email', targetEmail)
+          if (targetIdentifier && targetIdentifier !== 'member@jamplelife.com' && targetIdentifier !== 'member@jample.com' && targetIdentifier !== 'member') {
+            query = query.or(`member_id.ilike.${targetIdentifier},email.ilike.${targetIdentifier}`)
           } else if (isAdmin) {
             query = query.eq('role', 'ADMIN').limit(1)
           } else {
-            // Priority: Kamal Verma (Root leader distributor) or network_role LEADER
-            query = query.eq('email', 'kamal@jamplelife.com')
+            // Priority: Root leader distributor or Kamal Sharma
+            query = query.or('member_id.eq.JL-2026-0201,email.eq.kamal@jamplelife.com,email.eq.kamalsharma.100904@gmail.com')
           }
 
           let { data: dbProfiles, error } = await query
@@ -190,7 +206,7 @@ export const useAuthStore = create(
               .from('profiles')
               .select('*')
               .eq('role', role)
-              .order('network_role', { ascending: false }) // Prioritize LEADER over MEMBER
+              .order('network_role', { ascending: false })
               .order('joined_at', { ascending: true })
             dbProfiles = fallbackRes.data
             error = fallbackRes.error

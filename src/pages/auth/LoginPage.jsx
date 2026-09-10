@@ -4,8 +4,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Eye, EyeOff, ArrowRight, Loader2, ShieldCheck, TrendingUp,
-  Users, Leaf, Mail, Lock, Sparkles, Star, Shield, Building2,
-  CheckCircle2, Layers, Receipt
+  Leaf, Mail, Lock, Sparkles, Star, Shield, Building2,
+  CheckCircle2, Layers, Receipt, User
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/authStore'
@@ -39,7 +39,6 @@ const TRUST_STATS = [
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
-  const [selectedDemoRole, setSelectedDemoRole] = useState(null)
 
   const { signIn, isLoading } = useAuthStore()
   const navigate = useNavigate()
@@ -52,7 +51,8 @@ export default function LoginPage() {
   })
 
   const onSubmit = async (data) => {
-    const result = await signIn(data.email, data.password)
+    const identifier = data.identifier || data.email
+    const result = await signIn(identifier, data.password)
     if (result.success) {
       toast.success('Welcome back to Jample Life!')
       if (result.profile?.role === 'ADMIN') {
@@ -65,18 +65,6 @@ export default function LoginPage() {
     }
   }
 
-  const fillDemo = (role) => {
-    setSelectedDemoRole(role)
-    if (role === 'admin') {
-      setValue('email', 'admin@jamplelife.com')
-      setValue('password', 'Admin@123456')
-      toast.info('Loaded Super Admin credentials')
-    } else {
-      setValue('email', 'member@jamplelife.com')
-      setValue('password', 'Member@123456')
-      toast.info('Loaded Distributor Member credentials')
-    }
-  }
 
   return (
     <div className="min-h-screen flex bg-[#f8fafc]">
@@ -223,67 +211,36 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Interactive Demo Credential Pills */}
-            <div className="mb-6">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                Quick Demo Access
-              </p>
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => fillDemo('member')}
-                  className={cn(
-                    'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all',
-                    selectedDemoRole === 'member'
-                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                  )}
-                >
-                  <Users size={14} className={selectedDemoRole === 'member' ? 'text-amber-400' : 'text-slate-400'} />
-                  Demo Member
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillDemo('admin')}
-                  className={cn(
-                    'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all',
-                    selectedDemoRole === 'admin'
-                      ? 'bg-[#853953] text-white border-[#853953] shadow-xs'
-                      : 'bg-rose-50/60 text-[#853953] border-rose-200 hover:bg-rose-100/70'
-                  )}
-                >
-                  <ShieldCheck size={14} className={selectedDemoRole === 'admin' ? 'text-white' : 'text-[#853953]'} />
-                  Demo Admin
-                </button>
-              </div>
-            </div>
 
             {/* Login Form */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              {/* Email Address */}
+              {/* Distributor ID or Email */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Email Address <span className="text-rose-500">*</span>
+                  Distributor ID or Email <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <User size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
-                    type="email"
-                    autoComplete="email"
-                    placeholder="your@email.com"
-                    {...register('email')}
+                    type="text"
+                    autoComplete="username"
+                    placeholder="e.g. JL-2026-0201 or your@email.com"
+                    {...register('identifier')}
                     className={cn(
                       inputClass,
-                      'pl-10',
-                      errors.email && errorClass
+                      'pl-10 font-medium',
+                      errors.identifier && errorClass
                     )}
                   />
                 </div>
-                {errors.email && (
+                {errors.identifier && (
                   <p className="text-rose-500 text-xs font-semibold mt-1 flex items-center gap-1">
-                    {errors.email.message}
+                    {errors.identifier.message}
                   </p>
                 )}
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Enter your generated Distributor ID (e.g. JL-2026-0201) or registered email.
+                </p>
               </div>
 
               {/* Password */}

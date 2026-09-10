@@ -30,7 +30,10 @@ const referralCodeSchema = z
 // ─────────────────────────────────────────────────────────
 
 export const loginSchema = z.object({
-  email: z.string().email('Invalid email address').toLowerCase(),
+  identifier: z
+    .string()
+    .min(2, 'Please enter your Distributor ID or Email')
+    .trim(),
   password: z.string().min(1, 'Password is required'),
 })
 

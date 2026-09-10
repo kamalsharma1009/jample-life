@@ -44,6 +44,9 @@ export default function AdminHeader({ onMenuClick }) {
   useEffect(() => {
     fetchLiveCounts()
 
+    const handleSync = () => fetchLiveCounts()
+    window.addEventListener('jample_kyc_updated', handleSync)
+
     // Real-time synchronization
     const channel = supabase.channel('admin-header-live-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchLiveCounts)
@@ -51,6 +54,7 @@ export default function AdminHeader({ onMenuClick }) {
       .subscribe()
 
     return () => {
+      window.removeEventListener('jample_kyc_updated', handleSync)
       supabase.removeChannel(channel)
     }
   }, [])

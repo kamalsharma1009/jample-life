@@ -105,11 +105,15 @@ export default function AdminSidebar({ collapsed, onCollapse, onClose }) {
     }
     fetchKyc()
 
+    const handleSync = () => fetchKyc()
+    window.addEventListener('jample_kyc_updated', handleSync)
+
     const channel = supabase.channel('sidebar-kyc-live-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchKyc)
       .subscribe()
 
     return () => {
+      window.removeEventListener('jample_kyc_updated', handleSync)
       supabase.removeChannel(channel)
     }
   }, [])
